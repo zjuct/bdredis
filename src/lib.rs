@@ -126,7 +126,6 @@ impl volo_gen::volo::example::ItemService for S {
 		// 先暂时用drop(t)顶一下
 		drop(t);
 		// return the first message received
-		// test: only consider the first channel
 		let mut js = JoinSet::new();
 
 		for mut receiver in receivers.into_iter() {
