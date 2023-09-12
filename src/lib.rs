@@ -63,7 +63,6 @@ impl volo_gen::volo::example::ItemService for S {
 		::core::result::Result<GetResponse, ::volo_thrift::AnyhowError> {
 		let t = DB.lock().await;
 		let res = (*t).get(&_req.key.into_string());
-		println!("a: {}", (*t).get(&String::from("a")).unwrap());
 		
 		match res {
 			Some(value) => Ok(GetResponse { value: Some(value.clone().parse().unwrap()) }),
