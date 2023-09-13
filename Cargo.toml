@@ -21,6 +21,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 
 motore.workspace = true
+regex.workspace = true
 
 [profile.release]
 opt-level = 3
@@ -56,3 +57,4 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 
 motore = "0.3.3"
+regex = "*"

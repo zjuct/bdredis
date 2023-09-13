@@ -6,6 +6,7 @@ use std::env;
 use bdredis::{
     proxy2master::Proxy2MasterService,
     slave2master::Slave2MasterService,
+    aofmgr::AOFManager,
 };
 use volo_gen::rds::{
     ScServiceServer,
@@ -35,11 +36,12 @@ async fn main() {
 
     let db: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>> = Arc::new(Mutex::new(HashMap::new()));
+    let AOFMgr = Arc::new(AOFManager::new("redis.data").await.unwrap());
 
     // Proxy2Server RPC server
     let addr: SocketAddr = format!("127.0.0.1:{}", &args[1]).parse().unwrap();
     let addr = volo::net::Address::from(addr);
-    tokio::task::spawn(ScServiceServer::new(Proxy2MasterService::new(db.clone(), slaves.clone())).run(addr));
+    tokio::task::spawn(ScServiceServer::new(Proxy2MasterService::new(db.clone(), slaves.clone(), AOFMgr.clone())).run(addr));
 
     debug!("rpc server for proxy running at:{}", &args[1]);
 

@@ -16,14 +16,21 @@ use std::collections::HashMap;
 
 use tracing::debug;
 
+use crate::aofmgr::AOFManager;
+
 pub struct Proxy2MasterService {
 	db: Arc<Mutex<HashMap<String, String>>>,
 	slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>,
+	aofmgr: Arc<AOFManager>,
 }
 
 impl Proxy2MasterService {
-	pub fn new(db: Arc<Mutex<HashMap<String, String>>>, slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>) -> Self {
-		Self { db, slaves }
+	pub fn new(
+		db: Arc<Mutex<HashMap<String, String>>>, 
+		slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>,
+		aofmgr: Arc<AOFManager>
+	) -> Self {
+		Self { db, slaves, aofmgr }
 	}
 }
 
@@ -48,7 +55,7 @@ impl ScService for Proxy2MasterService {
 		let mut t = self.db.lock().await;
 		let _ = (*t).insert(_req.key.clone().into_string(), _req.value.clone().into_string());
 
-		let req = format!("set {} {}", _req.key.into_string(), _req.value.into_string());
+		let req = format!("set {} {}", _req.key.clone().into_string(), _req.value.clone().into_string());
 		let req = PingRequest {
 			payload: Some(FastStr::new(req)),
 		};
@@ -59,6 +66,8 @@ impl ScService for Proxy2MasterService {
 			client.aofsync(req.clone()).await.unwrap();
 		}
 
+		self.aofmgr.append(&_req).await;
+		self.aofmgr.flush().await.unwrap();
 		Ok(SetResponse { status: "OK".parse().unwrap() })
 	}
 
@@ -87,9 +96,9 @@ impl ScService for Proxy2MasterService {
 		}
 
 		let mut req = String::from("del");
-		for key in _req.keys {
+		for key in &_req.keys {
 			req.push_str(" ");
-			req.push_str(&key.into_string());
+			req.push_str(&key.clone().into_string());
 		}
 		let req = PingRequest {
 			payload: Some(FastStr::new(req)),
@@ -99,7 +108,8 @@ impl ScService for Proxy2MasterService {
 			// 这里用await不太好
 			client.aofsync(req.clone()).await.unwrap();
 		}
-
+		self.aofmgr.append(&_req).await;
+		self.aofmgr.flush().await.unwrap();
 		Ok(DelResponse { num })
 	}
 }
