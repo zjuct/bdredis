@@ -22,7 +22,7 @@ use tokio::io::AsyncReadExt;
 #[volo::main]
 async fn main() {
     tracing_subscriber::registry().with(fmt::layer()).init();
-    let conf_path = "../../config/ms.conf";
+    let conf_path = "../../config/proxy.conf";
     let mut conf_file = File::open(conf_path).await.unwrap();
 
     debug!("read configure");
@@ -37,6 +37,7 @@ async fn main() {
     
     let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
     let addr = volo::net::Address::from(addr);
+    debug!("proxy begin");
     // TODO: 不能用await
     ScServiceServer::new(proxy)
         .run(addr)
