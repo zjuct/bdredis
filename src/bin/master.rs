@@ -37,7 +37,7 @@ async fn main() {
     let slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>> = Arc::new(Mutex::new(HashMap::new()));
 
     // Proxy2Server RPC server
-    let addr: SocketAddr = "[::]:8080".parse().unwrap();
+    let addr: SocketAddr = format!("127.0.0.1:{}", &args[1]).parse().unwrap();
     let addr = volo::net::Address::from(addr);
     tokio::task::spawn(ScServiceServer::new(Proxy2MasterService::new(db.clone(), slaves.clone())).run(addr));
 

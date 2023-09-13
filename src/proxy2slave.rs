@@ -13,6 +13,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::collections::HashMap;
 
+use tracing::debug;
+
 pub struct Proxy2SlaveService {
 	db: Arc<Mutex<HashMap<String, String>>>,
 }
@@ -28,6 +30,7 @@ impl Proxy2SlaveService {
 impl ScService for Proxy2SlaveService {
 	async fn ping(&self, _req: PingRequest) ->
 		::core::result::Result<PingResponse, ::volo_thrift::AnyhowError> {
+		debug!("PING");
 		match _req.payload {
 			Some(payload) => {
 				Ok(PingResponse { payload })
@@ -40,11 +43,13 @@ impl ScService for Proxy2SlaveService {
 
 	async fn set(&self, _req: SetRequest) ->
 		::core::result::Result<SetResponse, ::volo_thrift::AnyhowError> {
+		debug!("SET");
         Err(anyhow!("Can only send SET to master"))
 	}
 
 	async fn get(&self, _req: GetRequest) ->
 		::core::result::Result<GetResponse, ::volo_thrift::AnyhowError> {
+		debug!("GET");
 		let t = self.db.lock().await;
 		let res = (*t).get(&_req.key.into_string());
 
@@ -56,6 +61,7 @@ impl ScService for Proxy2SlaveService {
 
 	async fn del(&self, _req: DelRequest) ->
 		::core::result::Result<DelResponse, ::volo_thrift::AnyhowError> {
+		debug!("DEL");
         Err(anyhow!("Can only send DEL to master"))
 	}
 }

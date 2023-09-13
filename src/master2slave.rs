@@ -12,6 +12,8 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::Mutex;
 
+use tracing::debug;
+
 pub struct Master2SlaveService {
     db: Arc<Mutex<HashMap<String, String>>>,
 }
@@ -27,6 +29,7 @@ impl Master2SlaveService {
 impl Master2Slave for Master2SlaveService {
 	async fn aofsync(&self, _req: PingRequest) ->
         Result<PingResponse, AnyhowError>{
+        debug!("aofsync {:?}", _req);
         let aofs: Vec<String> = _req.payload.expect("Empty aof request").into_string()
             .split("\n")
             .map(|s| String::from(s))
@@ -58,6 +61,7 @@ impl Master2Slave for Master2SlaveService {
 
 	async fn rdbsync(&self, _req: PingRequest) ->
         Result<PingResponse, AnyhowError>{
+        debug!("rdbsync");
         Err(anyhow!("TODO"))
     }
 }
