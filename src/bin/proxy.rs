@@ -4,7 +4,8 @@ use std::net::SocketAddr;
 
 use bdredis::{
     client2proxy::Client2ProxyService,
-    proxy2server::Proxy2ServerService,
+    proxy2master::Proxy2MasterService,
+    proxy2slave::Proxy2SlaveService,
 };
     
 use volo_gen::rds::{
