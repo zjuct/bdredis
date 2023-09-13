@@ -22,6 +22,8 @@ use tokio::sync::Mutex;
 use tracing::debug;
 use tracing_subscriber::{fmt, util::SubscriberInitExt, prelude::__tracing_subscriber_SubscriberExt};
 
+use tokio::signal;
+
 #[volo::main]
 async fn main() {
     tracing_subscriber::registry().with(fmt::layer()).init();
@@ -37,7 +39,7 @@ async fn main() {
     // Proxy2Server RPC server
     let addr: SocketAddr = "[::]:8080".parse().unwrap();
     let addr = volo::net::Address::from(addr);
-    let hdl1 = tokio::task::spawn(ScServiceServer::new(Proxy2MasterService::new(db.clone())).run(addr));
+    tokio::task::spawn(ScServiceServer::new(Proxy2MasterService::new(db.clone(), slaves.clone())).run(addr));
 
     debug!("rpc server for proxy running at:{}", &args[1]);
 
@@ -53,8 +55,12 @@ async fn main() {
     let master_addr = String::from(lines.split_whitespace().next().unwrap());
     let master_addr: SocketAddr = master_addr.parse().unwrap();
     let addr = volo::net::Address::from(master_addr);
-    let hdl2 = tokio::task::spawn(Slave2MasterServer::new(Slave2MasterService::new(slaves.clone())).run(addr));
+    tokio::task::spawn(Slave2MasterServer::new(Slave2MasterService::new(slaves.clone())).run(addr));
 
-    let _ = hdl1.await;
-    let _ = hdl2.await;
+    match signal::ctrl_c().await {
+        Ok(()) => {
+        },
+        Err(_) => {
+        }
+    }
 }
