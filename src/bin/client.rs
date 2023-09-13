@@ -8,40 +8,12 @@ use volo_gen::volo::example::{
     SetRequest,
     GetRequest,
     DelRequest,
-    PublishRequest,
-    SubscribeRequest,
-    ItemServiceRequestSend,
-    ItemServicePingArgsSend,
 };
-
-use mini_redis::FilterLayer;
-
-fn filter_ping_evil(req: ItemServiceRequestSend) -> bool {
-    match req {
-        ItemServiceRequestSend::Ping(ItemServicePingArgsSend { req: PingRequest { payload } }) => {
-            match payload {
-                Some(payload) => {
-                    if payload.to_lowercase().starts_with("evil") {
-                        return false;
-                    }
-                    true
-                },
-                None => {
-                    true
-                },
-            }
-        },
-        _ => {
-            true
-        }
-    }
-}
 
 lazy_static! {
     static ref CLIENT: volo_gen::volo::example::ItemServiceClient = {
         let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
         volo_gen::volo::example::ItemServiceClientBuilder::new("volo-example")
-            .layer_outer(FilterLayer::new(filter_ping_evil))
             .address(addr)
             .build()
     };
@@ -53,8 +25,6 @@ enum Input {
     Set(String, String),
     Get(String),
     Del(Vec<String>),
-    Publish(String, String),
-    Subscribe(Vec<String>),
 }
 
 #[volo::main]
@@ -134,28 +104,6 @@ fn get_input(send: broadcast::Sender<Input>) {
                     }
                 }
             },
-            "PUBLISH" => {
-                match input_vec.len() {
-                    3 => {
-                        send.send(Input::Publish(String::from(input_vec[1]), String::from(input_vec[2]))).unwrap();
-                    },
-                    _ => {
-                        println!("Invalid format of PUBLISH");
-                    }
-                }
-            },
-            "SUBSCRIBE" => {
-                match input_vec.len() {
-                    1 => {
-                        println!("Invalid format of SUBSCRIBE");
-                    },
-                    _ => {
-                        send.send(Input::Subscribe(
-                            input_vec[1..].iter().map(|s| String::from(*s)).collect()
-                        )).unwrap();
-                    }
-                }
-            },
             "QUIT" => {
                 quit = true;
             },
@@ -190,13 +138,6 @@ async fn handle_input(input: Input) {
             let res = del(key).await.unwrap();
             println!("{res}");
         },
-        Input::Publish(channel, msg) => {
-            let _ = publish(channel, msg).await.unwrap();
-        },
-        Input::Subscribe(channels) => {
-            let res = subscribe(channels).await.unwrap();
-            println!("{res}");
-        }
     }
 }
 
@@ -240,25 +181,6 @@ async fn del(keys: Vec<String>) -> Result<i64, anyhow::Error> {
     };
     let res = CLIENT.del(req).await?;
     Ok(res.num)
-}
-
-#[allow(dead_code)]
-async fn publish(channel: String, msg: String) -> Result<(), anyhow::Error> {
-    let req = PublishRequest {
-        channel: FastStr::new(channel),
-        msg: FastStr::new(msg),
-    };
-    let _ = CLIENT.publish(req).await?;
-    Ok(())
-}
-
-#[allow(dead_code)]
-async fn subscribe(channels: Vec<String>) -> Result<String, anyhow::Error> {
-    let req = SubscribeRequest {
-        channels: channels.into_iter().map(|c| FastStr::new(c)).collect(),
-    };
-    let res = CLIENT.subscribe(req).await?;
-    Ok(res.msg.into_string())
 }
 
 #[cfg(test)]
