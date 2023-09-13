@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Ok};
+use pilota::FastStr;
 // Proxy2Server
 // Proxy作为RPC client, Server(Master/Slave)作为RPC server
 use volo_gen::rds::{
@@ -7,6 +7,7 @@ use volo_gen::rds::{
     SetRequest, SetResponse,
     GetRequest, GetResponse,
     DelRequest, DelResponse,
+	Master2SlaveClient,
 };
 
 use std::sync::Arc;
@@ -15,11 +16,12 @@ use std::collections::HashMap;
 
 pub struct Proxy2MasterService {
 	db: Arc<Mutex<HashMap<String, String>>>,
+	slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>,
 }
 
 impl Proxy2MasterService {
-	pub fn new(db: Arc<Mutex<HashMap<String, String>>>) -> Self {
-		Self { db }
+	pub fn new(db: Arc<Mutex<HashMap<String, String>>>, slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>) -> Self {
+		Self { db, slaves }
 	}
 }
 
@@ -39,7 +41,20 @@ impl ScService for Proxy2MasterService {
 
 	async fn set(&self, _req: SetRequest) ->
 		::core::result::Result<SetResponse, ::volo_thrift::AnyhowError> {
-        Err(anyhow!("Can only send SET to master"))
+		let mut t = self.db.lock().await;
+		let _ = (*t).insert(_req.key.clone().into_string(), _req.value.clone().into_string());
+
+		let req = format!("set {} {}", _req.key.into_string(), _req.value.into_string());
+		let req = PingRequest {
+			payload: Some(FastStr::new(req)),
+		};
+
+		for (_, client) in self.slaves.lock().await.iter() {
+			// 这里用await不太好
+			client.aofsync(req.clone()).await.unwrap();
+		}
+
+		Ok(SetResponse { status: "OK".parse().unwrap() })
 	}
 
 	async fn get(&self, _req: GetRequest) ->
@@ -55,6 +70,27 @@ impl ScService for Proxy2MasterService {
 
 	async fn del(&self, _req: DelRequest) ->
 		::core::result::Result<DelResponse, ::volo_thrift::AnyhowError> {
-        Err(anyhow!("Can only send DEL to master"))
+		let mut t = self.db.lock().await;
+		let mut num = 0;
+		
+		for key in &_req.keys {
+			if let Some(_) = (*t).remove(key.as_str()) {
+				num += 1;
+			}
+		}
+
+		let mut req = String::from("del");
+		for key in _req.keys {
+			req.push_str(&key.into_string());
+		}
+		let req = PingRequest {
+			payload: Some(FastStr::new(req)),
+		};
+		for (_, client) in self.slaves.lock().await.iter() {
+			// 这里用await不太好
+			client.aofsync(req.clone()).await.unwrap();
+		}
+
+		Ok(DelResponse { num })
 	}
 }
