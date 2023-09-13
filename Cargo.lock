@@ -101,6 +101,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "bdredis"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "lazy_static",
+ "motore",
+ "pilota",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "volo",
+ "volo-gen",
+ "volo-thrift",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -688,23 +705,6 @@ dependencies = [
  "fxhash",
  "paste",
  "tokio",
-]
-
-[[package]]
-name = "mini_redis"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "lazy_static",
- "motore",
- "pilota",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "volo",
- "volo-gen",
- "volo-thrift",
 ]
 
 [[package]]

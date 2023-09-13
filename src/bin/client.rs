@@ -3,7 +3,7 @@ use pilota::FastStr;
 use std::{net::SocketAddr, thread};
 use tokio::sync::broadcast;
 
-use volo_gen::volo::example::{
+use volo_gen::rds::{
     PingRequest,
     SetRequest,
     GetRequest,
@@ -11,9 +11,10 @@ use volo_gen::volo::example::{
 };
 
 lazy_static! {
-    static ref CLIENT: volo_gen::volo::example::ItemServiceClient = {
+    static ref CLIENT: volo_gen::rds::ScServiceClient = {
+        // 此处8080应改为proxy上rpc server端口
         let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
-        volo_gen::volo::example::ItemServiceClientBuilder::new("volo-example")
+        volo_gen::rds::ScServiceClientBuilder::new("client")
             .address(addr)
             .build()
     };
