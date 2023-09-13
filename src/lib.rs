@@ -7,12 +7,9 @@ use volo_gen::volo::example::{
 	GetRequest, GetResponse,	
 	DelRequest, DelResponse,
 };
-use tokio::sync::{
-	Mutex,
-	broadcast::Sender,
-};
+use tokio::sync::Mutex;
+
 use std::collections::HashMap;
-use std::sync::Arc;
 
 
 pub struct S;
@@ -20,10 +17,6 @@ pub struct S;
 lazy_static! {
 	static ref DB: Mutex<HashMap<String, String>> = {
 		println!("Init DB");
-		Mutex::new(HashMap::new())
-	};
-	static ref CHANNEL: Mutex<HashMap<String, Arc<Sender<String>>>> = {
-		println!("Init CHANNLE");
 		Mutex::new(HashMap::new())
 	};
 }
