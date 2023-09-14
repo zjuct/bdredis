@@ -15,11 +15,18 @@ use std::hash::{Hash,Hasher};
 
 use std::collections::hash_map::DefaultHasher;
 
+use std::sync::Arc;
+use std::collections::HashMap;
+use tokio::sync::Mutex;
+
+
 //use crate::proxy2server;
 
 pub struct Client2ProxyService{
 	master: volo_gen::rds::ScServiceClient,
 	slaves: Vec<volo_gen::rds::ScServiceClient>,
+	hash_trans: Arc<Mutex<HashMap<i64, Vec<String>>>>,
+	hash_watch: Arc<Mutex<HashMap<i64, String>>>,
 }
 impl Client2ProxyService {
 	pub fn new(master_addr:&str, slaves_addr: &Vec<&str>)->Self{
@@ -38,6 +45,8 @@ impl Client2ProxyService {
 		Client2ProxyService{
 			master: mas,
 			slaves: sla_v,
+			hash_trans: Arc::new(Mutex::new(HashMap::new())),
+			hash_watch: Arc::new(Mutex::new(HashMap::new())),
 		}
 	}
 	fn my_hash(&self, input:&str)->usize{

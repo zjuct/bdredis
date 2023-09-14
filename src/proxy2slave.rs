@@ -7,6 +7,7 @@ use volo_gen::rds::{
     SetRequest, SetResponse,
     GetRequest, GetResponse,
     DelRequest, DelResponse,
+	SetTransRequest,
 };
 
 use std::sync::Arc;
@@ -64,4 +65,8 @@ impl ScService for Proxy2SlaveService {
 		debug!("DEL");
         Err(anyhow!("Can only send DEL to master"))
 	}
+
+	async fn set_trans(&self, _req: SetTransRequest) ->
+		::core::result::Result<DelResponse, ::volo_thrift::AnyhowError>
+
 }

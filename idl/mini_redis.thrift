@@ -37,12 +37,35 @@ struct DelResponse {
     1: required i64 num,
 }
 
+struct SetTransRequest{
+    1: required string key,
+    2: required string value,
+    3: required i64 id,
+}
+struct GetTransRequest{
+    1: required string key,
+    2: required i64 id,
+}
+struct MultiResponse{
+    1: required i64 id,
+}
+struct TransResponse{
+    1: required string status,
+}
+struct ExecResponse{
+    1: required list<string> values,
+}
+
 // Client-Proxy && Proxy-Server
 service SCService {
     PingResponse ping(1: PingRequest req),
     SetResponse set(1: SetRequest req),
     GetResponse get(1: GetRequest req),
     DelResponse del(1: DelRequest req),
+    TransResponse set_trans(1: SetRequest req),
+    TransResponse get_trans(1: GetRequest req),
+    MultiResponse multi(1:GetTransRequest req),
+    ExecResponse exec(1:GetTransRequest req),
 }
 
 // Master-Slave
