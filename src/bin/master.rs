@@ -36,6 +36,7 @@ async fn main() {
     let db: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>> = Arc::new(Mutex::new(HashMap::new()));
     let AOFMgr = Arc::new(AOFManager::new("redis.data").await.unwrap());
+    AOFMgr.init_db(db.clone());
 
     // Proxy2Server RPC server
     let addr: SocketAddr = format!("127.0.0.1:{}", &args[1]).parse().unwrap();
