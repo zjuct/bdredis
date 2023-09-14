@@ -10898,3 +10898,9 @@ aofsync finish
 [2m2023-09-14T12:56:37.764143Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
 [2m2023-09-14T12:56:52.763744Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
 [2m2023-09-14T12:57:07.763083Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
+[2m2023-09-14T12:57:22.763252Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
+[2m2023-09-14T12:57:37.764008Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
+[2m2023-09-14T12:57:52.763792Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
+[2m2023-09-14T12:58:07.763576Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
+[2m2023-09-14T12:58:22.764928Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
+[2m2023-09-14T12:58:37.763758Z[0m [35mTRACE[0m [2mvolo_thrift::transport::pool[0m[2m:[0m [VOLO] idle interval checking for expired
