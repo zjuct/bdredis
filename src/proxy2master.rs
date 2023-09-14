@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use pilota::FastStr;
 // Proxy2Server
 // Proxy作为RPC client, Server(Master/Slave)作为RPC server
@@ -8,6 +9,9 @@ use volo_gen::rds::{
     GetRequest, GetResponse,
     DelRequest, DelResponse,
 	Master2SlaveClient,
+	SetTransRequest, GetTransRequest,
+	TransResponse,
+	MultiResponse, ExecResponse,
 };
 
 use std::sync::Arc;
@@ -111,5 +115,25 @@ impl ScService for Proxy2MasterService {
 		self.aofmgr.append(&_req).await;
 		self.aofmgr.flush().await.unwrap();
 		Ok(DelResponse { num })
+	}
+
+	async fn set_trans(&self, _req: SetTransRequest) ->
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn get_trans(&self, _req: GetTransRequest) ->
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn multi(&self, _req: GetTransRequest) ->
+		::core::result::Result<MultiResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn exec(&self, _req: GetTransRequest) ->
+		::core::result::Result<ExecResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
 	}
 }

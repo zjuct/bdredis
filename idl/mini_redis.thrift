@@ -62,8 +62,8 @@ service SCService {
     SetResponse set(1: SetRequest req),
     GetResponse get(1: GetRequest req),
     DelResponse del(1: DelRequest req),
-    TransResponse set_trans(1: SetRequest req),
-    TransResponse get_trans(1: GetRequest req),
+    TransResponse set_trans(1: SetTransRequest req),
+    TransResponse get_trans(1: GetTransRequest req),
     MultiResponse multi(1:GetTransRequest req),
     ExecResponse exec(1:GetTransRequest req),
 }

@@ -7,7 +7,9 @@ use volo_gen::rds::{
     SetRequest, SetResponse,
     GetRequest, GetResponse,
     DelRequest, DelResponse,
-	SetTransRequest,
+	SetTransRequest, GetTransRequest,
+	TransResponse,
+	MultiResponse, ExecResponse,
 };
 
 use std::sync::Arc;
@@ -67,6 +69,22 @@ impl ScService for Proxy2SlaveService {
 	}
 
 	async fn set_trans(&self, _req: SetTransRequest) ->
-		::core::result::Result<DelResponse, ::volo_thrift::AnyhowError>
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
 
+	async fn get_trans(&self, _req: GetTransRequest) ->
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn multi(&self, _req: GetTransRequest) ->
+		::core::result::Result<MultiResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn exec(&self, _req: GetTransRequest) ->
+		::core::result::Result<ExecResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
 }

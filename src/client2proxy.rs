@@ -8,6 +8,9 @@ use volo_gen::rds::{
     SetRequest, SetResponse,
     GetRequest, GetResponse,
     DelRequest, DelResponse,
+	SetTransRequest, GetTransRequest,
+	TransResponse,
+	MultiResponse, ExecResponse,
 };
 use std::net::SocketAddr;//, thread};
 //use crate::proxy2server::Proxy2ServerService;
@@ -28,6 +31,7 @@ pub struct Client2ProxyService{
 	hash_trans: Arc<Mutex<HashMap<i64, Vec<String>>>>,
 	hash_watch: Arc<Mutex<HashMap<i64, String>>>,
 }
+
 impl Client2ProxyService {
 	pub fn new(master_addr:&str, slaves_addr: &Vec<&str>)->Self{
 		let addr: SocketAddr = master_addr.parse().unwrap();
@@ -105,5 +109,25 @@ impl ScService for Client2ProxyService {
 					Err(anyhow!("failed"))
 				}
 			}
+	}
+
+	async fn set_trans(&self, _req: SetTransRequest) ->
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn get_trans(&self, _req: GetTransRequest) ->
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn multi(&self, _req: GetTransRequest) ->
+		::core::result::Result<MultiResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
+
+	async fn exec(&self, _req: GetTransRequest) ->
+		::core::result::Result<ExecResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
 	}
 }
