@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use pilota::FastStr;
-use std::{net::SocketAddr, thread};
+use std::net::SocketAddr;
 use anyhow::anyhow;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
@@ -306,7 +306,7 @@ async fn exec() -> Result<Vec<String>, anyhow::Error> {
         Ok(values) => {
             Ok(values.values.into_iter().map(|s| s.into_string()).collect())
         },
-        Err(e) => {
+        Err(_) => {
             Err(anyhow!("watch vialated"))
         }
     }

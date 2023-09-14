@@ -2,7 +2,6 @@
 // Master作为RPC Client, Slave作为RPC Server
 use anyhow::{anyhow, Ok};
 use pilota::FastStr;
-use tracing_subscriber::fmt::format;
 use volo_gen::rds::{
     Slave2Master,
     PingRequest, PingResponse,

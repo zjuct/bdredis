@@ -82,7 +82,7 @@ impl ScService for Client2ProxyService {
 		let  db_watch = self.hash_watch.lock().await;
 		if let Some(trans_id) = db_watch.get(&_req.key.to_string()){
 			let mut db_trans = self.hash_trans.lock().await; //to change the state
-			if let Some((trans,state)) = db_trans.get_mut(&trans_id){
+			if let Some((_ ,state)) = db_trans.get_mut(&trans_id){
 				*state = false;
 			}else{  //insert an empty value with state false
 				let trans = Vec::new();

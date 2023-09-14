@@ -1,5 +1,6 @@
 use pilota::FastStr;
 
+#[allow(unused_imports)]
 use volo_gen::rds::{
     PingRequest,
     SetRequest,
