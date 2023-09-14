@@ -8,7 +8,7 @@ use volo_gen::rds::{
     ScServiceClient,
 };
 
-use tokio::fs::File;
+#[allow(unused_imports)]
 use tokio::io::AsyncReadExt;
 
 #[volo::main]

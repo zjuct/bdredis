@@ -16,8 +16,6 @@ use volo_gen::rds::{
     Master2SlaveServer,
 };
 
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
 use tokio::sync::Mutex;
 
 use std::sync::Arc;
