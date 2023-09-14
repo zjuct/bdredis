@@ -13,8 +13,6 @@ use volo_gen::rds::{
     Master2SlaveClient,
 };
 
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
 use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::Mutex;
@@ -29,8 +27,9 @@ async fn main() {
     tracing_subscriber::registry().with(fmt::layer()).init();
 
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
-        panic!("Usage: master proxy_port");
+    if args.len() != 3 {
+        println!("{:?}", args);
+        panic!("Usage: master proxy_port master_port");
     }
 
     let db: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
@@ -44,18 +43,11 @@ async fn main() {
     debug!("rpc server for proxy running at:{}", &args[1]);
 
 
-    // 读取Master-Slave配置文件，获取master server端口号
-    let conf_path = "../../config/ms.conf";
-    let mut conf_file = File::open(conf_path).await.unwrap();
-
-    debug!("read configure");
-
-    let mut lines = String::new();
-    let _ = conf_file.read_to_string(&mut lines).await;
-    let master_addr = String::from(lines.split_whitespace().next().unwrap());
-    let master_addr: SocketAddr = master_addr.parse().unwrap();
-    let addr = volo::net::Address::from(master_addr);
+    let addr: SocketAddr = format!("127.0.0.1:{}", &args[2]).parse().unwrap();
+    let addr = volo::net::Address::from(addr);
     tokio::task::spawn(Slave2MasterServer::new(Slave2MasterService::new(slaves.clone())).run(addr));
+
+    debug!("rpc server for slave running at:{}", &args[2]);
 
     match signal::ctrl_c().await {
         Ok(()) => {

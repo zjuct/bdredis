@@ -33,8 +33,9 @@ async fn main() {
     tracing_subscriber::registry().with(fmt::layer()).init();
 
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        panic!("Usage: slave proxy_port master_port");
+    if args.len() != 4 {
+        println!("{:?}", args);
+        panic!("Usage: slave proxy_port port_for_master master_port");
     }
 
     let db: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
@@ -53,22 +54,14 @@ async fn main() {
     
     debug!("rpc server for master running at:{}", &args[2]);
     
-    // 异步读取配置文件，获取master的rpc端口号
-    let conf_path = "../../config/ms.conf";
-    let mut conf_file = File::open(conf_path).await.unwrap();
-
-    debug!("read configure");
-
-    let mut lines = String::new();
-    let _ = conf_file.read_to_string(&mut lines).await;
     // 创建一个Slave2Master RPC Client
-    let master_addr = String::from(lines.split_whitespace().next().unwrap());
-    let master_addr: SocketAddr = master_addr.parse().unwrap();
+    let master_addr: SocketAddr = (format!("127.0.0.1:{}", &args[3])).parse().unwrap();
     let client = Slave2MasterClientBuilder::new("slave")
         .address(master_addr)
         .build();
 
     debug!("rpc client connect to {}", master_addr);
+
     register_at_master(&client, &(format!{"127.0.0.1:{}", &args[2]})).await;
 
     match signal::ctrl_c().await {

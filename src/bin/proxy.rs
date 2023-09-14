@@ -19,10 +19,13 @@ use tracing_subscriber::{fmt, util::SubscriberInitExt, prelude::__tracing_subscr
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
+
 #[volo::main]
 async fn main() {
     tracing_subscriber::registry().with(fmt::layer()).init();
-    let conf_path = "../../config/proxy.conf";
+
+    let redis_path = std::env::var("MINIREDIS_PATH").expect("Please set the MINIREDIS_PATH environment vairable");
+    let conf_path = format!("{}/config/proxy.conf", redis_path);
     let mut conf_file = File::open(conf_path).await.unwrap();
 
     debug!("read configure");
