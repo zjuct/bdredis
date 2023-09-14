@@ -2,12 +2,15 @@ use lazy_static::lazy_static;
 use pilota::FastStr;
 use std::{net::SocketAddr, thread};
 use tokio::sync::broadcast;
+use tokio::sync::Mutex;
 
 use volo_gen::rds::{
     PingRequest,
     SetRequest,
     GetRequest,
     DelRequest,
+    GetTransRequest,
+    SetTransRequest,
 };
 
 lazy_static! {
@@ -18,6 +21,9 @@ lazy_static! {
             .address(addr)
             .build()
     };
+
+    static ref INTX: Mutex<bool> = Mutex::new(false);
+    static ref TXID: Mutex<i64> = Mutex::new(-1);
 }
 
 #[derive(Clone, Debug)]
@@ -26,6 +32,9 @@ enum Input {
     Set(String, String),
     Get(String),
     Del(Vec<String>),
+    Multi,
+    Exec,
+    Watch(String),
 }
 
 #[volo::main]
@@ -34,9 +43,7 @@ async fn main() {
 
     // spawn a thread to handle user input
     let (send, mut recv): (broadcast::Sender<Input>, broadcast::Receiver<Input>) = broadcast::channel(16); 
-    thread::spawn(move || {
-        get_input(send);
-    });
+    tokio::task::spawn(get_input(send));
 
     loop {
         match recv.recv().await {
@@ -46,7 +53,7 @@ async fn main() {
     }
 }
 
-fn get_input(send: broadcast::Sender<Input>) {
+async fn get_input(send: broadcast::Sender<Input>) {
     let mut quit = false;
     while !quit {
         let mut buf = String::new();
@@ -106,14 +113,46 @@ fn get_input(send: broadcast::Sender<Input>) {
                 }
             },
             "MULTI" => {
-                // match input_vec.len() {
-                //     0 => {
-                //         send.send(Input::Multi()).unwrap();
-                //     },
-                //     _ => {
-                //         println!("Invalid format of Multi");
-                //     }
-                // }
+                match input_vec.len() {
+                    1 => {
+                        if *INTX.lock().await == true {
+                            println!("Already inside transaction");
+                        } else {
+                            send.send(Input::Multi).unwrap();
+                        }
+                    },
+                    _ => {
+                        println!("Invalid format of MULTI");
+                    }
+                }
+            },
+            "EXEC" => {
+                match input_vec.len() {
+                    1 => {
+                        if *INTX.lock().await == false {
+                            println!("Exec can only be used inside transaction");
+                        } else {
+                            send.send(Input::Exec).unwrap();
+                        }
+                    },
+                    _ => {
+                        println!("Invalid format of EXEC");
+                    }
+                }
+            },
+            "WATCH" => {
+                match input_vec.len() {
+                    2 => {
+                        if *INTX.lock().await == false {
+                            println!("Watch can only be used inside transaction");
+                        } else {
+                            send.send(Input::Watch(String::from(input_vec[1]))).unwrap();
+                        }
+                    },
+                    _ => {
+                        println!("Invalid format of WATCH");
+                    }
+                }
             }
             "QUIT" => {
                 quit = true;
@@ -149,9 +188,17 @@ async fn handle_input(input: Input) {
             let res = del(key).await.unwrap();
             println!("{res}");
         },
-        // Input::Multi() => {
-        //     let id = 
-        // }
+        Input::Multi => {
+            multi().await.unwrap();
+            println!("Transaction start");
+        },
+        Input::Exec => {
+            exec().await.unwrap();
+            println!("Transaction end");
+        },
+        Input::Watch(key) => {
+            watch(key).await.unwrap();
+        }
     }
 }
 
@@ -167,24 +214,46 @@ async fn ping(payload: Option<String>) -> Result<String, anyhow::Error> {
 
 #[allow(dead_code)]
 async fn set(key: String, value: String) -> Result<(), anyhow::Error> {
-    let req = SetRequest {
-        key: FastStr::new(key),
-        value: FastStr::new(value),
-    };
-    let res = CLIENT.set(req).await?;
-    println!("{}", res.status.into_string());
-    Ok(())
+    if *INTX.lock().await {
+        // inside transaction
+        let req = SetTransRequest {
+            key: FastStr::new(key),
+            value: FastStr::new(value),
+            id: *TXID.lock().await,
+        };
+        let _ = CLIENT.set_trans(req).await?;
+        Ok(())
+    } else {
+        let req = SetRequest {
+            key: FastStr::new(key),
+            value: FastStr::new(value),
+        };
+        let res = CLIENT.set(req).await?;
+        println!("{}", res.status.into_string());
+        Ok(())
+    }
 }
 
 #[allow(dead_code)]
 async fn get(key: String) -> Result<Option<String>, anyhow::Error> {
-    let req = GetRequest {
-        key: FastStr::new(key),
-    };
-    let res = CLIENT.get(req).await?;
-    match res.value {
-        Some(value) => Ok(Some(value.into_string())),
-        None => Ok(None),
+    if *INTX.lock().await {
+        // inside transaction
+        let req = GetTransRequest {
+            key: FastStr::new(key),
+            id: *TXID.lock().await,
+        };
+
+        let _ = CLIENT.get_trans(req).await?;
+        Ok(Some(String::from("Ok")))
+    } else {
+        let req = GetRequest {
+            key: FastStr::new(key),
+        };
+        let res = CLIENT.get(req).await?;
+        match res.value {
+            Some(value) => Ok(Some(value.into_string())),
+            None => Ok(None),
+        }
     }
 }
 
@@ -195,6 +264,44 @@ async fn del(keys: Vec<String>) -> Result<i64, anyhow::Error> {
     };
     let res = CLIENT.del(req).await?;
     Ok(res.num)
+}
+
+#[allow(dead_code)]
+async fn multi() -> Result<(), anyhow::Error> {
+    assert!(!*INTX.lock().await);
+    let req = GetTransRequest {
+        key: FastStr::from("Start tx"),
+        id: -1,
+    };
+    let res = CLIENT.multi(req).await?;
+    *TXID.lock().await = res.id;
+    *INTX.lock().await = true;
+    Ok(())
+}
+
+#[allow(dead_code)]
+async fn exec() -> Result<Vec<String>, anyhow::Error> {
+    assert!(*INTX.lock().await);
+    let req = GetTransRequest {
+        key: FastStr::from("End tx"),
+        id: *TXID.lock().await,
+    };
+    let res = CLIENT.exec(req).await?;
+
+    *TXID.lock().await = -1;
+    *INTX.lock().await = true;
+    Ok(res.values.into_iter().map(|s| s.into_string()).collect())
+}
+
+#[allow(dead_code)]
+async fn watch(key: String) -> Result<(), anyhow::Error> {
+    assert!(*INTX.lock().await);
+    let req = GetTransRequest {
+        key: FastStr::from(key),
+        id: *TXID.lock().await,
+    };
+    let _ = CLIENT.watch(req).await?;
+    Ok(())
 }
 
 #[cfg(test)]
