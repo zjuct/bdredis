@@ -22,6 +22,7 @@ use std::sync::Arc;
 use std::collections::HashMap;
 use tokio::sync::Mutex;
 
+use pilota::FastStr;
 
 //use crate::proxy2server;
 
@@ -29,7 +30,7 @@ pub struct Client2ProxyService{
 	master: volo_gen::rds::ScServiceClient,
 	slaves: Vec<volo_gen::rds::ScServiceClient>,
 	hash_trans: Arc<Mutex<HashMap<i64, Vec<String>>>>,
-	hash_watch: Arc<Mutex<HashMap<i64, String>>>,
+	hash_watch: Arc<Mutex<HashMap<String,i64>>>,
 }
 
 impl Client2ProxyService {
@@ -113,21 +114,75 @@ impl ScService for Client2ProxyService {
 
 	async fn set_trans(&self, _req: SetTransRequest) ->
 		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
-        Err(anyhow!("NOT IMPLEMENTED"))
+        let trans_id = _req.id;
+		let command = format!("{} {}",_req.key,_req.value);
+		let mut db_trans = self.hash_trans.lock().await;
+		if let Some(trans) = db_trans.get_mut(&trans_id){
+			trans.push(command);
+		}else{
+			let mut trans = Vec::new();
+			trans.push(command);
+			db_trans.insert(trans_id, trans);
+		}
+		Ok(TransResponse { status: FastStr::from("set") })
 	}
 
 	async fn get_trans(&self, _req: GetTransRequest) ->
 		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
-        Err(anyhow!("NOT IMPLEMENTED"))
+			let trans_id = _req.id;
+			let command = format!("{} get",_req.key);
+			let mut db_trans = self.hash_trans.lock().await;
+			if let Some(trans) = db_trans.get_mut(&trans_id){
+				trans.push(command);
+			}else{
+				let mut trans = Vec::new();
+				trans.push(command);
+				db_trans.insert(trans_id, trans);
+			}
+			Ok(TransResponse { status: FastStr::from("get") })
 	}
 
 	async fn multi(&self, _req: GetTransRequest) ->
 		::core::result::Result<MultiResponse, ::volo_thrift::AnyhowError> {
-        Err(anyhow!("NOT IMPLEMENTED"))
+		let db_trans = self.hash_trans.lock().await;
+		let id = 8;//(db_trans.keys().len()-1) as i64;
+		Ok(MultiResponse{
+			id
+		})
 	}
 
 	async fn exec(&self, _req: GetTransRequest) ->
 		::core::result::Result<ExecResponse, ::volo_thrift::AnyhowError> {
-        Err(anyhow!("NOT IMPLEMENTED"))
+		let trans_id = _req.id;
+		let mut db_trans = self.hash_trans.lock().await;
+
+		let mut result_vec = Vec::new();
+		if let Some(trans) = db_trans.get_mut(&trans_id){
+			for comm in trans{
+				let command = comm.clone();
+				let com_split:Vec<String> = command.split_whitespace().map(|s| String::from(s)).collect();
+				//let com_split = com_split.clone();
+				if com_split[1] == "get"{
+					let resp = self.get(GetRequest { key: FastStr::from(com_split[0].clone()) }).await?;
+					match resp.value {
+						Some(value) => {
+							result_vec.push(value);
+						},
+						None => {
+
+						},
+					}
+				}else{  //set
+					let _ = self.set(SetRequest { key: FastStr::from(com_split[0].clone()), value: FastStr::from(com_split[1].clone()) }).await;
+				}
+			}
+		}else{
+			return Err(anyhow!("NO Result"))
+			// let mut trans = Vec::new();
+			// trans.push(command);
+			// db_trans.insert(trans_id, trans);
+		}
+		Ok(ExecResponse { values: result_vec })
+		
 	}
 }

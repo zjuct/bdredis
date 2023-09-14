@@ -105,6 +105,16 @@ fn get_input(send: broadcast::Sender<Input>) {
                     }
                 }
             },
+            "MULTI" => {
+                // match input_vec.len() {
+                //     0 => {
+                //         send.send(Input::Multi()).unwrap();
+                //     },
+                //     _ => {
+                //         println!("Invalid format of Multi");
+                //     }
+                // }
+            }
             "QUIT" => {
                 quit = true;
             },
@@ -139,6 +149,9 @@ async fn handle_input(input: Input) {
             let res = del(key).await.unwrap();
             println!("{res}");
         },
+        // Input::Multi() => {
+        //     let id = 
+        // }
     }
 }
 

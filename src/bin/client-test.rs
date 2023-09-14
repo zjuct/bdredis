@@ -6,6 +6,9 @@ use volo_gen::rds::{
     GetRequest,
     DelRequest,
     ScServiceClient,
+    SetTransRequest, GetTransRequest,
+	TransResponse,
+	MultiResponse, ExecResponse,
 };
 
 #[allow(unused_imports)]
@@ -172,6 +175,27 @@ mod tests {
         // 发送1000条get
         for i in 0..1000 {
             assert_eq!(get(&client, format!("key{i}")).await.unwrap(), Some(format!("value{i}")));
+        }
+    }
+
+    #[tokio::test]
+    async fn transaction_test() {
+        let addr: std::net::SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let client = volo_gen::rds::ScServiceClientBuilder::new("client")
+            .address(addr)
+            .build();
+
+        let trans_id = client.multi(GetTransRequest { key: FastStr::from("begin"), id: -1 }).await.unwrap();
+        let trans_id = trans_id.id;
+        client.set_trans(SetTransRequest { key: FastStr::from("hello"), value: FastStr::from("world"), id: trans_id }).await.unwrap();
+        client.set_trans(SetTransRequest { key: FastStr::from("hello2"), value: FastStr::from("world2"), id: trans_id }).await.unwrap();
+        client.set_trans(SetTransRequest { key: FastStr::from("hello3"), value: FastStr::from("world3"), id: trans_id }).await.unwrap();
+        client.get_trans(GetTransRequest { key: FastStr::from("hello"), id: trans_id }).await.unwrap();
+        client.get_trans(GetTransRequest { key: FastStr::from("hello2"), id: trans_id }).await.unwrap();
+        client.get_trans(GetTransRequest { key: FastStr::from("hello3"), id: trans_id }).await.unwrap();
+        let resp = client.exec(GetTransRequest { key: FastStr::from("end"), id: trans_id }).await.unwrap();
+        for res in resp.values{
+            println!("{}",res);
         }
     }
 }
