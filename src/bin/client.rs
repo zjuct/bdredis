@@ -175,12 +175,14 @@ async fn handle_input(input: Input) {
         },
         Input::Get(key) => {
             let res = get(key).await.unwrap();
-            match res {
-                Some(value) => {
-                    println!("{value}");
-                },
-                None => {
-                    println!("{{nil}}");
+            if !*INTX.lock().await {
+                match res {
+                    Some(value) => {
+                        println!("{value}");
+                    },
+                    None => {
+                        println!("{{nil}}");
+                    }
                 }
             }
         },
@@ -193,8 +195,11 @@ async fn handle_input(input: Input) {
             println!("Transaction start");
         },
         Input::Exec => {
-            exec().await.unwrap();
+            let values = exec().await.unwrap();
             println!("Transaction end");
+            for value in values {
+                println!("{value}");
+            }
         },
         Input::Watch(key) => {
             watch(key).await.unwrap();
