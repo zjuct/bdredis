@@ -194,8 +194,8 @@ mod tests {
         client.get_trans(GetTransRequest { key: FastStr::from("hello2"), id: trans_id }).await.unwrap();
         client.get_trans(GetTransRequest { key: FastStr::from("hello3"), id: trans_id }).await.unwrap();
         let resp = client.exec(GetTransRequest { key: FastStr::from("end"), id: trans_id }).await.unwrap();
-        for res in resp.values{
-            println!("{}",res);
-        }
+        assert_eq!(&resp.values[0], "world");
+        assert_eq!(&resp.values[1], "world2");
+        assert_eq!(&resp.values[2], "world3");
     }
 }

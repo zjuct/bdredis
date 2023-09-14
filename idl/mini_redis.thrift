@@ -66,6 +66,7 @@ service SCService {
     TransResponse get_trans(1: GetTransRequest req),
     MultiResponse multi(1:GetTransRequest req),
     ExecResponse exec(1:GetTransRequest req),
+    TransResponse watch(1: GetTransRequest req),
 }
 
 // Master-Slave

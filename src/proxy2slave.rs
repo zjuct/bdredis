@@ -87,4 +87,9 @@ impl ScService for Proxy2SlaveService {
 		::core::result::Result<ExecResponse, ::volo_thrift::AnyhowError> {
         Err(anyhow!("NOT IMPLEMENTED"))
 	}
+
+	async fn watch(&self, _req: GetTransRequest) ->
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+        Err(anyhow!("NOT IMPLEMENTED"))
+	}
 }

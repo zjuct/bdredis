@@ -24,6 +24,7 @@ use tokio::sync::Mutex;
 
 use pilota::FastStr;
 
+use tracing::debug;
 //use crate::proxy2server;
 
 pub struct Client2ProxyService{
@@ -114,6 +115,8 @@ impl ScService for Client2ProxyService {
 
 	async fn set_trans(&self, _req: SetTransRequest) ->
 		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+		
+		debug!("SET_TRANS: {:?}", _req);
         let trans_id = _req.id;
 		let command = format!("{} {}",_req.key,_req.value);
 		let mut db_trans = self.hash_trans.lock().await;
@@ -129,6 +132,7 @@ impl ScService for Client2ProxyService {
 
 	async fn get_trans(&self, _req: GetTransRequest) ->
 		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+			debug!("GET_TRANS: {:?}", _req);
 			let trans_id = _req.id;
 			let command = format!("{} get",_req.key);
 			let mut db_trans = self.hash_trans.lock().await;
@@ -144,6 +148,7 @@ impl ScService for Client2ProxyService {
 
 	async fn multi(&self, _req: GetTransRequest) ->
 		::core::result::Result<MultiResponse, ::volo_thrift::AnyhowError> {
+		debug!("MULTI: {:?}", _req);
 		let db_trans = self.hash_trans.lock().await;
 		let id = 8;//(db_trans.keys().len()-1) as i64;
 		Ok(MultiResponse{
@@ -153,6 +158,7 @@ impl ScService for Client2ProxyService {
 
 	async fn exec(&self, _req: GetTransRequest) ->
 		::core::result::Result<ExecResponse, ::volo_thrift::AnyhowError> {
+		debug!("EXEC: {:?}", _req);
 		let trans_id = _req.id;
 		let mut db_trans = self.hash_trans.lock().await;
 
@@ -184,5 +190,10 @@ impl ScService for Client2ProxyService {
 		}
 		Ok(ExecResponse { values: result_vec })
 		
+	}
+
+	async fn watch(&self, _req: GetTransRequest) ->
+		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
+		Err(anyhow!("Not impl"))
 	}
 }
