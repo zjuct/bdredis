@@ -156,4 +156,22 @@ mod tests {
         let mut halt = Command::new(format!("{}/script/halt.py", redis_path));
         let _ = std::process::Command::status(&mut halt).unwrap();
     }
+
+    #[tokio::test]
+    async fn proxy_test() {
+        let addr: std::net::SocketAddr = "127.0.0.1:8080".parse().unwrap();
+        let client = volo_gen::rds::ScServiceClientBuilder::new("client")
+            .address(addr)
+            .build();
+
+        // 发送1000条set
+        for i in 0..1000 {
+            set(&client, format!("key{i}"), format!("value{i}")).await.unwrap();
+        }
+
+        // 发送1000条get
+        for i in 0..1000 {
+            assert_eq!(get(&client, format!("key{i}")).await.unwrap(), Some(format!("value{i}")));
+        }
+    }
 }
