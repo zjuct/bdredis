@@ -1,9 +1,8 @@
-use core::marker::{Send};
-use std::{collections::HashMap, borrow::BorrowMut, env};
+use std::{collections::HashMap, env};
+use anyhow::anyhow;
 use tokio::{fs,
             fs::File,
-            io::AsyncBufReadExt,
-            io,
+            io:: AsyncReadExt,
             sync::Mutex,
             io::AsyncWriteExt};
 
@@ -25,11 +24,13 @@ impl AOFManager
             Ok(path) => path,
             Err(e) => return Err(e.into())
         };
+        println!("{}", path);
         path.push_str("/");
         path.push_str(file_name);
         let buf = Mutex::new(String::new());
         let fname = path;
-        let mut fs = fs::OpenOptions::new()
+        println!("{fname}");
+        let fs = fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(fname.clone())
@@ -43,11 +44,10 @@ impl AOFManager
     }
 
     pub async fn flush(&self) -> Result<(), anyhow::Error>{
-        let path = self.file_name.as_str();
         let mut buf = self.buffer.lock().await;
         let content = buf.as_bytes();
         let mut fs = self.fstream.lock().await;
-        fs.write_all(content).await;
+        fs.write_all(content).await.unwrap();
         buf.clear();
         drop(buf);
         Ok(())
@@ -98,8 +98,8 @@ impl AOFManager
         }
     }
 
-    pub async fn append<Req: std::fmt::Debug + core::marker::Send + 'static>(&self, Request: &Req ) {
-        let req = format!("{:?}", Request);
+    pub async fn append<Req: std::fmt::Debug + core::marker::Send + 'static>(&self, request: &Req ) {
+        let req = format!("{:?}", request);
         let log = Self::parse(req).await.unwrap();
         
         let mut buf = self.buffer.lock().await;
@@ -109,32 +109,33 @@ impl AOFManager
 
     pub async fn init_db(&self,
         hash: Arc<Mutex<HashMap<String, String>>>) -> Result<(), anyhow::Error> {
-        let file = File::open(self.file_name.clone()).await.unwrap();
-        let mut reader = io::BufReader::new(file);
-    
-        let line = &mut String::new();
-        let hashmap = hash.clone();
-        let mut hashmap = hashmap.lock().await;
-        loop {
-            match reader.read_line(line).await {
-                Ok(read_bytes) => if read_bytes == 0 { break; },
-                Ok(_) => {
-                    let args: Vec<&str> = line.trim().split(" ").collect();
-                    match args[0] {
+        let mut file = File::open(self.file_name.clone()).await.unwrap();
+        let mut lines = String::new();
+        file.read_to_string(&mut lines).await.unwrap();
+        
+        let mut t = hash.lock().await;
+        for line in lines.split("\n") {
+            let mut iter = line.split_whitespace();
+            match iter.next() {
+                Some(req) => {
+                    match req {
                         "set" => {
-                            hashmap.insert(args[1].to_string(), args[2].to_string());
+                            let key = iter.next().unwrap();
+                            let value = iter.next().unwrap();
+                            (*t).insert(String::from(key), String::from(value));
                         },
                         "del" => {
-                            for i in 1..args.len() {
-                                hashmap.remove(args[i]);
+                            for key in iter {
+                                (*t).remove(&String::from(key));
                             }
+                        },
+                        _ => {
+                            return Err(anyhow!("Unrecognized request in AOF"));
                         }
-                        _ => ()
                     }
-                    line.clear();
-                }
-                Err(e) => {
-                    return Err(e.into());
+                },
+                None => {
+                    return Ok(());
                 }
             }
         }

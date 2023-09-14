@@ -35,13 +35,13 @@ async fn main() {
 
     let db: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>> = Arc::new(Mutex::new(HashMap::new()));
-    let AOFMgr = Arc::new(AOFManager::new("redis.data").await.unwrap());
-    AOFMgr.init_db(db.clone());
+    let aofmgr = Arc::new(AOFManager::new("redis.data").await.unwrap());
+    aofmgr.init_db(db.clone()).await.unwrap();
 
     // Proxy2Server RPC server
     let addr: SocketAddr = format!("127.0.0.1:{}", &args[1]).parse().unwrap();
     let addr = volo::net::Address::from(addr);
-    tokio::task::spawn(ScServiceServer::new(Proxy2MasterService::new(db.clone(), slaves.clone(), AOFMgr.clone())).run(addr));
+    tokio::task::spawn(ScServiceServer::new(Proxy2MasterService::new(db.clone(), slaves.clone(), aofmgr.clone())).run(addr));
 
     debug!("rpc server for proxy running at:{}", &args[1]);
 

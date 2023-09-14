@@ -7,7 +7,8 @@ import sys
 
 # 启动server
 REDIS_PATH = os.environ["MINIREDIS_PATH"]
-bin = REDIS_PATH + '/target/debug/master 18000 10000 |& grep -e DEBUG | grep -v VOLO' 
+# bin = REDIS_PATH + '/target/debug/master 18000 10000 |& grep -e DEBUG | grep -v VOLO' 
+bin = REDIS_PATH + '/target/debug/master 18000 10000'
 args = ['bash', '-c', bin]
 subprocess.Popen(args)
 
@@ -27,7 +28,8 @@ subprocess.Popen(bin.split())
 time.sleep(2)
 
 # 重启server
-bin = REDIS_PATH + '/target/debug/master 18000 10000 |& grep -e DEBUG | grep -v VOLO' 
+# bin = REDIS_PATH + '/target/debug/master 18000 10000 |& grep -e DEBUG | grep -v VOLO' 
+bin = REDIS_PATH + '/target/debug/master 18000 10000'
 args = ['bash', '-c', bin]
 subprocess.Popen(args)
 
