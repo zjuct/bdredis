@@ -30,7 +30,7 @@ use tracing::debug;
 pub struct Client2ProxyService{
 	master: volo_gen::rds::ScServiceClient,
 	slaves: Vec<volo_gen::rds::ScServiceClient>,
-	hash_trans: Arc<Mutex<HashMap<i64, Vec<String>>>>,
+	hash_trans: Arc<Mutex<HashMap<i64, (Vec<String>,bool)>>>, //tuple 
 	hash_watch: Arc<Mutex<HashMap<String,i64>>>,
 }
 
@@ -78,6 +78,18 @@ impl ScService for Client2ProxyService {
 
 	async fn set(&self, _req: SetRequest) ->
 		::core::result::Result<SetResponse, ::volo_thrift::AnyhowError> {  //all to the master
+		//first decide if it has conflicted
+		let  db_watch = self.hash_watch.lock().await;
+		if let Some(trans_id) = db_watch.get(&_req.key.to_string()){
+			let mut db_trans = self.hash_trans.lock().await; //to change the state
+			if let Some((trans,state)) = db_trans.get_mut(&trans_id){
+				*state = false;
+			}else{  //insert an empty value with state false
+				let trans = Vec::new();
+
+				db_trans.insert(*trans_id, (trans,false));
+			}
+		}
         match self.master.set(_req).await{
 			Ok(resp) => {
 				Ok(resp)
@@ -92,7 +104,7 @@ impl ScService for Client2ProxyService {
 		::core::result::Result<GetResponse, ::volo_thrift::AnyhowError> {
         let distubutor = self.my_hash(&_req.key);
 		match self.slaves[distubutor].get(_req).await{
-			Ok(resp) => {
+			Ok(resp) =>{
 				Ok(resp)
 			}
 			Err(_) =>{
@@ -120,12 +132,14 @@ impl ScService for Client2ProxyService {
         let trans_id = _req.id;
 		let command = format!("{} {}",_req.key,_req.value);
 		let mut db_trans = self.hash_trans.lock().await;
-		if let Some(trans) = db_trans.get_mut(&trans_id){
-			trans.push(command);
+		if let Some((trans,state)) = db_trans.get_mut(&trans_id){
+			if *state{
+				trans.push(command);
+			}
 		}else{
 			let mut trans = Vec::new();
 			trans.push(command);
-			db_trans.insert(trans_id, trans);
+			db_trans.insert(trans_id, (trans,true));
 		}
 		Ok(TransResponse { status: FastStr::from("set") })
 	}
@@ -136,12 +150,14 @@ impl ScService for Client2ProxyService {
 			let trans_id = _req.id;
 			let command = format!("{} get",_req.key);
 			let mut db_trans = self.hash_trans.lock().await;
-			if let Some(trans) = db_trans.get_mut(&trans_id){
-				trans.push(command);
+			if let Some((trans,state)) = db_trans.get_mut(&trans_id){
+				if *state{
+					trans.push(command);
+				}
 			}else{
 				let mut trans = Vec::new();
 				trans.push(command);
-				db_trans.insert(trans_id, trans);
+				db_trans.insert(trans_id, (trans,true));
 			}
 			Ok(TransResponse { status: FastStr::from("get") })
 	}
@@ -150,7 +166,7 @@ impl ScService for Client2ProxyService {
 		::core::result::Result<MultiResponse, ::volo_thrift::AnyhowError> {
 		debug!("MULTI: {:?}", _req);
 		let db_trans = self.hash_trans.lock().await;
-		let id = 8;//(db_trans.keys().len()-1) as i64;
+		let id = (db_trans.keys().len()) as i64; //new id
 		Ok(MultiResponse{
 			id
 		})
@@ -163,25 +179,44 @@ impl ScService for Client2ProxyService {
 		let mut db_trans = self.hash_trans.lock().await;
 
 		let mut result_vec = Vec::new();
-		if let Some(trans) = db_trans.get_mut(&trans_id){
-			for comm in trans{
-				let command = comm.clone();
-				let com_split:Vec<String> = command.split_whitespace().map(|s| String::from(s)).collect();
-				//let com_split = com_split.clone();
-				if com_split[1] == "get"{
-					let resp = self.get(GetRequest { key: FastStr::from(com_split[0].clone()) }).await?;
-					match resp.value {
-						Some(value) => {
-							result_vec.push(value);
-						},
-						None => {
-
-						},
+		if let Some((trans,state)) = db_trans.get_mut(&trans_id){
+			if *state{  //not conflicted
+				for comm in trans{
+					let command = comm.clone();
+					let com_split:Vec<String> = command.split_whitespace().map(|s| String::from(s)).collect();
+					//let com_split = com_split.clone();
+					if com_split[1] == "get"{
+						let resp = self.get(GetRequest { key: FastStr::from(com_split[0].clone()) }).await?;
+						match resp.value {
+							Some(value) => {
+								result_vec.push(value);
+							},
+							None => {
+	
+							},
+						}
+					}else{  //set
+						let _ = self.set(SetRequest { key: FastStr::from(com_split[0].clone()), value: FastStr::from(com_split[1].clone()) }).await;
 					}
-				}else{  //set
-					let _ = self.set(SetRequest { key: FastStr::from(com_split[0].clone()), value: FastStr::from(com_split[1].clone()) }).await;
 				}
-			}
+			} //else return empty
+
+			//remove the key-value
+			db_trans.remove(&trans_id);
+			
+			//remove db_watch too
+			let mut db_watch = self.hash_watch.lock().await;
+
+			let keys_to_remove: Vec<_> = db_watch
+        	.iter()
+        	.filter(|&(_, value)| *value == trans_id)
+        	.map(|(key, _)| key.clone())
+        	.collect();
+
+    		for key in keys_to_remove {
+    		    db_watch.remove(&key);
+    		}
+
 		}else{
 			return Err(anyhow!("NO Result"))
 			// let mut trans = Vec::new();
@@ -194,6 +229,9 @@ impl ScService for Client2ProxyService {
 
 	async fn watch(&self, _req: GetTransRequest) ->
 		::core::result::Result<TransResponse, ::volo_thrift::AnyhowError> {
-		Err(anyhow!("Not impl"))
+		let mut db_watch = self.hash_watch.lock().await;
+		let trans_id = _req.id;
+		db_watch.insert(_req.key.to_string(), trans_id); //register
+		Ok(TransResponse { status: FastStr::from("Success") })
 	}
 }
