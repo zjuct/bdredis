@@ -1,1 +1,4 @@
+set a abc
+set a hello
 set abc abc
+set abc def

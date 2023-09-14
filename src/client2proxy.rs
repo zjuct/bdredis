@@ -199,7 +199,24 @@ impl ScService for Client2ProxyService {
 						let _ = self.set(SetRequest { key: FastStr::from(com_split[0].clone()), value: FastStr::from(com_split[1].clone()) }).await;
 					}
 				}
-			} //else return empty
+			} else {
+				//remove the key-value
+				db_trans.remove(&trans_id);
+				
+				//remove db_watch too
+				let mut db_watch = self.hash_watch.lock().await;
+
+				let keys_to_remove: Vec<_> = db_watch
+				.iter()
+				.filter(|&(_, value)| *value == trans_id)
+				.map(|(key, _)| key.clone())
+				.collect();
+
+				for key in keys_to_remove {
+					db_watch.remove(&key);
+				}
+				return Err(anyhow!("Watch vialated"));
+			}
 
 			//remove the key-value
 			db_trans.remove(&trans_id);

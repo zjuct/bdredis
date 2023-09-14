@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use pilota::FastStr;
 use std::{net::SocketAddr, thread};
+use anyhow::anyhow;
 use tokio::sync::broadcast;
 use tokio::sync::Mutex;
 
@@ -195,10 +196,17 @@ async fn handle_input(input: Input) {
             println!("Transaction start");
         },
         Input::Exec => {
-            let values = exec().await.unwrap();
-            println!("Transaction end");
-            for value in values {
-                println!("{value}");
+            match exec().await {
+                Ok(values) => {
+                    println!("Transaction end");
+                    for value in values {
+                        println!("{value}");
+                    }
+                },
+                Err(_) => {
+                    println!("Watch violated");
+                    println!("Transaction interrupted");
+                }
             }
         },
         Input::Watch(key) => {
@@ -291,11 +299,17 @@ async fn exec() -> Result<Vec<String>, anyhow::Error> {
         key: FastStr::from("End tx"),
         id: *TXID.lock().await,
     };
-    let res = CLIENT.exec(req).await?;
-
+    let res = CLIENT.exec(req).await;
     *TXID.lock().await = -1;
-    *INTX.lock().await = true;
-    Ok(res.values.into_iter().map(|s| s.into_string()).collect())
+    *INTX.lock().await = false;
+    match res {
+        Ok(values) => {
+            Ok(values.values.into_iter().map(|s| s.into_string()).collect())
+        },
+        Err(e) => {
+            Err(anyhow!("watch vialated"))
+        }
+    }
 }
 
 #[allow(dead_code)]
