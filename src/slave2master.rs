@@ -2,6 +2,7 @@
 // Master作为RPC Client, Slave作为RPC Server
 use anyhow::{anyhow, Ok};
 use pilota::FastStr;
+use tracing_subscriber::fmt::format;
 use volo_gen::rds::{
     Slave2Master,
     PingRequest, PingResponse,
@@ -17,12 +18,13 @@ use tokio::sync::Mutex;
 use tracing::debug;
 
 pub struct Slave2MasterService {
+    db: Arc<Mutex<HashMap<String, String>>>,
     slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>,
 }
 
 impl Slave2MasterService {
-    pub fn new(slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>) -> Self {
-        Self { slaves }
+    pub fn new(slaves: Arc<Mutex<HashMap<String, Master2SlaveClient>>>, db: Arc<Mutex<HashMap<String, String>>>) -> Self {
+        Self { db, slaves }
     }
 }
 
@@ -39,7 +41,21 @@ impl Slave2Master for Slave2MasterService{
                     .build();
 
                 let _ = (*t).insert(payload.clone().into_string(), client);
-                debug!("slave {} registered", payload.into_string());
+                debug!("slave {} registered", payload.clone().into_string());
+
+                // 向slave同步已有的数据
+                let db = self.db.lock().await;
+                let mut aof = String::new();
+                for (key, value) in db.iter() {
+                    aof.push_str(&format!("set {} {}\n", key, value));
+                }
+                println!("{aof}");
+                let req = PingRequest {
+                    payload: Some(FastStr::from(aof))
+                };
+                let _ = (*t).get(&payload.into_string()).unwrap().aofsync(req).await.unwrap();
+                println!("aofsync success");
+
                 Ok(PingResponse { payload: FastStr::new("register success") })
             },
             None => {

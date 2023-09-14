@@ -48,7 +48,7 @@ async fn main() {
 
     let addr: SocketAddr = format!("127.0.0.1:{}", &args[2]).parse().unwrap();
     let addr = volo::net::Address::from(addr);
-    tokio::task::spawn(Slave2MasterServer::new(Slave2MasterService::new(slaves.clone())).run(addr));
+    tokio::task::spawn(Slave2MasterServer::new(Slave2MasterService::new(slaves.clone(), db.clone())).run(addr));
 
     debug!("rpc server for slave running at:{}", &args[2]);
 

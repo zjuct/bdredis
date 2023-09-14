@@ -33,7 +33,10 @@ impl Master2Slave for Master2SlaveService {
         let aofs: Vec<String> = _req.payload.expect("Empty aof request").into_string()
             .split("\n")
             .map(|s| String::from(s))
+            .filter(|s| s != "")
             .collect();
+
+        println!("{:?}", aofs);
 
 
         let mut t = self.db.lock().await;
@@ -56,6 +59,7 @@ impl Master2Slave for Master2SlaveService {
                 }
             }
         }
+        println!("aofsync finish");
         Ok(PingResponse { payload: FastStr::new("aofsync finish") })
     }
 
