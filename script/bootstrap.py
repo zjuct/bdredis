@@ -3,8 +3,9 @@
 import os
 import subprocess
 
-CONF_PATH = "../config/ms.conf"
-EXEC_DIR = "../target/debug"
+REDIS_PATH = os.environ["MINIREDIS_PATH"]
+CONF_PATH = REDIS_PATH + "/config/ms.conf"
+EXEC_DIR = REDIS_PATH + "/target/debug"
 f = open(CONF_PATH)
 lines = f.readlines()
 for line in lines:
