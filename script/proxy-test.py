@@ -45,12 +45,12 @@ bin = "cargo test -q --bin client-test proxy_test"
 f = open("/dev/null")
 subprocess.Popen(bin.split(), stderr=fnull, stdout=fnull)
 
-time.sleep(10)
-
-# 统计所有slave接受的get数量
-for i in range(1, len(lines)):
-    p1 = subprocess.Popen(["cat", f"{LOG_DIR}/server{i}.log"], stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(["grep", "DEBUG"], stdin=p1.stdout, stdout=subprocess.PIPE)
-    p3 = subprocess.Popen(["grep", "get"], stdin=p2.stdout, stdout=subprocess.PIPE)
-    p4 = subprocess.Popen(["wc", "-l"], stdin=p3.stdout)
+# time.sleep(15)
+# 
+# # 统计所有slave接受的get数量
+# for i in range(1, len(lines)):
+#     p1 = subprocess.Popen(["cat", f"{LOG_DIR}/server{i}.log"], stdout=subprocess.PIPE)
+#     p2 = subprocess.Popen(["grep", "DEBUG"], stdin=p1.stdout, stdout=subprocess.PIPE)
+#     p3 = subprocess.Popen(["grep", "get"], stdin=p2.stdout, stdout=subprocess.PIPE)
+#     p4 = subprocess.Popen(["wc", "-l"], stdin=p3.stdout)
 
