@@ -37,10 +37,19 @@ async fn main() {
     let mut lines = String::new();
     let _ = conf_file.read_to_string(&mut lines).await;
     let mut lines_split = lines.split_whitespace();
-    let master_addr = String::from(lines_split.next().unwrap());
-    //let master_addr: SocketAddr = master_addr.parse().unwrap();
-    let slaves:Vec<&str> = lines_split.collect();
+    let master_line = lines_split.next().unwrap();
+    let master_vec:Vec<&str> = master_line.split_whitespace().collect();
+
+    let master_addr = format!("127.0.0.1:{}",master_vec[1]);
+
+    let slave_lines:Vec<&str> = lines_split.collect();
+    let mut slaves = Vec::new();
+    for line in slave_lines{
+        let comm:Vec<&str> = line.split_whitespace().collect();
+        slaves.push(format!("127.0.0.1:{}",comm[1]));
+    }
     let proxy = Client2ProxyService::new(&master_addr,&slaves);
+
     
     let addr: SocketAddr = "127.0.0.1:8080".parse().unwrap();
     let addr = volo::net::Address::from(addr);

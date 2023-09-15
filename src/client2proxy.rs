@@ -35,7 +35,7 @@ pub struct Client2ProxyService{
 }
 
 impl Client2ProxyService {
-	pub fn new(master_addr:&str, slaves_addr: &Vec<&str>)->Self{
+	pub fn new(master_addr:&str, slaves_addr: &Vec<String>)->Self{
 		let addr: SocketAddr = master_addr.parse().unwrap();
         let mas = volo_gen::rds::ScServiceClientBuilder::new("master")
             .address(addr).build();
