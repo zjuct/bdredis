@@ -22,6 +22,14 @@ slave port_for_proxy port_for_master master_port
 slave port_for_proxy port_for_master master_port
 ```
 以上启动了1个master和3个slave，注意`port_for_slave`应与`master_port`相等
+
+> `ms.conf`示例
+> ```
+> master 18000 10000
+> slave 18001 10001 10000
+> slave 18002 10002 10000
+> slave 18003 10003 10000
+> ```
     
 3. 运行`script/bootstrap.py`，启动所有server和proxy
 
