@@ -13,7 +13,8 @@
 ## 服务器启动方式
 
 1. 设置环境变量`MINIREDIS_PATH`为bdredis目录地址(重要)
-2. `config/ms.conf`为master/slave配置文件，格式如下
+2. 运行`cargo build`
+3. `config/ms.conf`为master/slave配置文件，格式如下
 
 ```
 master port_for_proxy port_for_slave
@@ -31,11 +32,11 @@ slave port_for_proxy port_for_master master_port
 > slave 18003 10003 10000
 > ```
     
-3. 运行`script/bootstrap.py`，启动所有server和proxy
+4. 运行`script/bootstrap.py`，启动所有server和proxy
 
-4. 在另一个窗口中运行`cargo run --bin client`，启动client
+5. 在另一个窗口中运行`cargo run --bin client`，启动client
 
-5. 可以使用`script/halt.py`关闭所有server和proxy
+6. 可以使用`script/halt.py`关闭所有server和proxy
 
 ## client-cli使用
 
@@ -58,5 +59,5 @@ DEL [key]...
 
 - 运行`script/aof-test.py`，进行AOF测试
 - 运行`script/ms-test.py`，进行master/slave测试
-- 运行`script/proxy-test.py`，进行cluster测试
+- 运行`script/proxy-test.py`，进行cluster测试，等待一段时间(约5s)后运行`scripe/proxy-test.sh`，测试负载均衡效果
 
