@@ -23,9 +23,13 @@ use tokio::io::AsyncReadExt;
 #[volo::main]
 async fn main() {
     tracing_subscriber::registry().with(fmt::layer()).init();
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        println!("Usage: proxy conf")
+    }
 
     let redis_path = std::env::var("MINIREDIS_PATH").expect("Please set the MINIREDIS_PATH environment vairable");
-    let conf_path = format!("{}/config/proxy.conf", redis_path);
+    let conf_path = format!("{}/config/{}", redis_path, &args[1]);
     let mut conf_file = File::open(conf_path).await.unwrap();
 
     debug!("read configure");

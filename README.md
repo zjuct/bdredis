@@ -1,18 +1,54 @@
 # mini-redis
 
-- 支持`PING`, `GET`, `SET`, `DEL`, `PUBLISH`, `SUBSCRIBE`命令
+- 支持`PING`, `GET`, `SET`, `DEL`, `MULTI`, `WATCH`, `EXEC`命令
 
 - 提供client-cli命令行前端
 
-- Filter中间件实现自定义请求过滤
+- 实现AOF
 
-## `PING`
+- 实现master/slave架构
+
+- 实现cluster
+
+## 服务器启动方式
+
+1. 设置环境变量`MINIREDIS_PATH`为bdredis目录地址(重要)
+2. `config/ms.conf`为master/slave配置文件，格式如下
+
+```
+master port_for_proxy port_for_slave
+slave port_for_proxy port_for_master master_port
+slave port_for_proxy port_for_master master_port
+slave port_for_proxy port_for_master master_port
+```
+以上启动了1个master和3个slave，注意`port_for_slave`应与`master_port`相等
+
+3. `config/proxy.conf`为proxy配置文件，格式如下
+
+```
+127.0.0.1:18000
+127.0.0.1:18001
+127.0.0.1:18002
+127.0.0.1:18003
+```
+
+以上对应1个master和3个salve，注意`config/proxy.conf`中的端口号与`config/ms.conf`中的`port_for_proxy`端口相同
+    
+4. 运行`script/bootstrap.py`，启动所有server和proxy
+
+5. 在另一个窗口中运行`cargo run --bin client`，启动client
+
+6. 可以使用`script/halt.py`关闭所有server和proxy
+
+## client-cli使用
+
+### `PING`
 
 ```
 PING [string]
 ```
 
-## `GET`, `SET`, `DEL`
+### `GET`, `SET`, `DEL`
 
 ```
 GET key
@@ -20,22 +56,10 @@ SET key value
 DEL [key]...
 ```
 
-## `PUBLISH`, `SUBSCRIBE`
 
-```
-PUBLISH channel message
-SUBSCRIBE [channel]...
-```
+## 测试
 
-`PUBLISH`支持广播
+- 运行`script/aof-test.py`，进行AOF测试
+- 运行`script/ms-test.py`，进行master/slave测试
+- 运行`script/proxy-test.py`，进行cluster测试
 
-1. `cargo run --bin server`启动服务器
-2. 在两个终端通过`cargo run --bin client`启动两个客户端A, B
-3. A运行`SUBSCRIBE hello1 hello2`，订阅两个管道
-4. B运行`PUBLISH hello1 world`，A收到`world`，退出等待
-
-`SUBSCRIBE`, `PUBLISH`为ping-pong模型，一次连接发送单个message
-
-## `Filter`
-
-支持自定义predicate，Filter根据predicate的结果判断是否丢弃请求
