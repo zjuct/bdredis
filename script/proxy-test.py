@@ -26,7 +26,7 @@ for idx, line in enumerate(lines):
 time.sleep(2)
 
 # 启动proxy
-proxy = EXEC_DIR + "/proxy"
+proxy = EXEC_DIR + "/proxy " + CONF_PATH
 args = ['bash', '-c', proxy]
 f = open("/dev/null")
 subprocess.Popen(args, stderr=fnull, stdout=fnull)

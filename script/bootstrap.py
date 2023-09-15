@@ -22,6 +22,6 @@ for line in lines:
 
 time.sleep(1)
 
-proxy = EXEC_DIR + "/proxy"
+proxy = EXEC_DIR + "/proxy " + CONF_PATH
 args = ['bash', '-c', proxy]
 subprocess.Popen(args)
