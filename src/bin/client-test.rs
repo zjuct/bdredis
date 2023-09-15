@@ -163,6 +163,7 @@ mod tests {
 
     #[tokio::test]
     async fn proxy_test() {
+        let redis_path = std::env::var("MINIREDIS_PATH").expect("Please set the MINIREDIS_PATH environment vairable");
         let addr: std::net::SocketAddr = "127.0.0.1:8080".parse().unwrap();
         let client = volo_gen::rds::ScServiceClientBuilder::new("client")
             .address(addr)
@@ -177,6 +178,9 @@ mod tests {
         for i in 0..1000 {
             assert_eq!(get(&client, format!("key{i}")).await.unwrap(), Some(format!("value{i}")));
         }
+
+        let mut halt = Command::new(format!("{}/script/halt.py", redis_path));
+        let _ = std::process::Command::status(&mut halt).unwrap();
     }
 
     #[tokio::test]

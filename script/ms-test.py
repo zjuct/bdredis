@@ -5,8 +5,9 @@ import os
 import time
 import sys
 
-# 根据配置文件启动主从server
 REDIS_PATH = os.environ["MINIREDIS_PATH"]
+
+# 根据配置文件启动主从server
 CONF_PATH = REDIS_PATH + "/config/ms-test.conf"
 EXEC_DIR = REDIS_PATH + "/target/debug"
 f = open(CONF_PATH)

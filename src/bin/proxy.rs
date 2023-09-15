@@ -28,6 +28,8 @@ async fn main() {
         println!("Usage: proxy conf")
     }
 
+    println!("read from {}", &args[1]);
+
     let redis_path = std::env::var("MINIREDIS_PATH").expect("Please set the MINIREDIS_PATH environment vairable");
     let conf_path = format!("{}/config/{}", redis_path, &args[1]);
     let mut conf_file = File::open(conf_path).await.unwrap();
@@ -36,8 +38,9 @@ async fn main() {
 
     let mut lines = String::new();
     let _ = conf_file.read_to_string(&mut lines).await;
-    let mut lines_split = lines.split_whitespace();
+    let mut lines_split = lines.split("\n");
     let master_line = lines_split.next().unwrap();
+    println!("master_line: {}", master_line);
     let master_vec:Vec<&str> = master_line.split_whitespace().collect();
 
     let master_addr = format!("127.0.0.1:{}",master_vec[1]);
@@ -45,6 +48,9 @@ async fn main() {
     let slave_lines:Vec<&str> = lines_split.collect();
     let mut slaves = Vec::new();
     for line in slave_lines{
+        if line == "" {
+            continue;
+        }
         let comm:Vec<&str> = line.split_whitespace().collect();
         slaves.push(format!("127.0.0.1:{}",comm[1]));
     }

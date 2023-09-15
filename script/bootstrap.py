@@ -22,6 +22,7 @@ for line in lines:
 
 time.sleep(1)
 
-proxy = EXEC_DIR + "/proxy " + CONF_PATH
+CONF_FILE = "ms.conf"
+proxy = EXEC_DIR + "/proxy " + CONF_FILE
 args = ['bash', '-c', proxy]
 subprocess.Popen(args)

@@ -4,11 +4,19 @@ import os
 import subprocess
 import time
 
-# 启动master-slave
+
 REDIS_PATH = os.environ["MINIREDIS_PATH"]
+LOG_DIR = REDIS_PATH + "/script/proxy-test"
+
+bin = "rm -f {REDIS_PATH}/redis.data"
+subprocess.Popen(bin.split())
+bin = "rm -f {LOG_DIR}/*"
+subprocess.Popen(bin.split())
+time.sleep(1)
+
+# 启动master-slave
 CONF_PATH = REDIS_PATH + "/config/proxy-test.conf"
 EXEC_DIR = REDIS_PATH + "/target/debug"
-LOG_DIR = REDIS_PATH + "/script/proxy-test"
 f = open(CONF_PATH)
 master = True
 lines = f.readlines()
@@ -26,7 +34,8 @@ for idx, line in enumerate(lines):
 time.sleep(2)
 
 # 启动proxy
-proxy = EXEC_DIR + "/proxy " + CONF_PATH
+CONF_FILE = "proxy-test.conf"
+proxy = EXEC_DIR + "/proxy " + CONF_FILE
 args = ['bash', '-c', proxy]
 f = open("/dev/null")
 subprocess.Popen(args, stderr=fnull, stdout=fnull)
